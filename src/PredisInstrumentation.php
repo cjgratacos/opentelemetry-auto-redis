@@ -52,9 +52,18 @@ class PredisInstrumentation
                 )
                     ->setSpanKind(SpanKind::KIND_CLIENT);
                 $host = $params[0];
-                if (array_is_list($host)) {
+                
+                if (is_string($host)) {
+                    $value = parse_url($host);
+                    if ($value) {
+                        $host = $value;
+                    }
+                }
+                
+                if (is_array($host) && array_is_list($host)) {
                     $host = $host[0];
                 }
+                
                 if ($class === \Predis\Client::class) {
                     $builder->setAttribute(TraceAttributes::SERVER_ADDRESS, $host['host'] ?? $host['path'] ?? 'unknown')
                         ->setAttribute(TraceAttributes::NETWORK_TRANSPORT, $host['scheme'] ?? 'unknown');
@@ -66,6 +75,7 @@ class PredisInstrumentation
                         $builder->setAttribute(TraceAttributes::DB_USER, $auth[0]);
                     }
                 }
+                
                 $parent = Context::getCurrent();
                 $span = $builder->startSpan();
                 Context::storage()->attach($span->storeInContext($parent));
